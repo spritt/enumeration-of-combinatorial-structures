@@ -1,2 +1,2 @@
 # Enumerate
-Algorithmic enumeration of analytic combinatoric structures
+Algorithmic enumeration of analytic combinatorial structures
