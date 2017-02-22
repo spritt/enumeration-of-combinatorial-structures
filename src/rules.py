@@ -17,7 +17,7 @@ class Union:
             other.SubRule1 in (self.SubRule1, self.SubRule2) and \
             other.SubRule2 in (self.SubRule1, self.SubRule2)
     def __str__(self):
-        return self.Value + " = " + self.SubRule1 + " + " + self.SubRule2
+        return str(self.Value) + " = " + str(self.SubRule1) + " + " + str(self.SubRule2)
 
 class Product:
     def __init__(self, *args): # args[0] = args[1] * args[2]
@@ -38,7 +38,7 @@ class Product:
             other.SubRule1 in (self.SubRule1, self.SubRule2) and \
             other.SubRule2 in (self.SubRule1, self.SubRule2)
     def __str__(self):
-        return self.Value + " = " + self.SubRule1 + " * " + self.SubRule2
+        return str(self.Value) + " = " + str(self.SubRule1) + " * " + str(self.SubRule2)
             
 class Sequence:
     def __init__(self, *args): # args[0] = seq(args[1])
@@ -54,7 +54,7 @@ class Sequence:
         return isinstance(other, Sequence) and \
             self.SubRule == other.SubRule
     def __str__(self):
-        return self.Value + " = Seq(" + self.SubRule + ")"
+        return str(self.Value) + " = Seq(" + str(self.SubRule) + ")"
         
 class Set:
     def __init__(self, *args): # args[0] = set(args[1])
@@ -70,7 +70,7 @@ class Set:
         return isinstance(other, Set) and \
             self.SubRule == other.SubRule
     def __str__(self):
-        return self.Value + " = Set(" + self.SubRule + ")"
+        return str(self.Value) + " = Set(" + str(self.SubRule) + ")"
     
 class KSet:
     def __init__(self, *args): # args[0] = set(args[1])
@@ -90,7 +90,7 @@ class KSet:
         return isinstance(other, KSet) and \
             self.SubRule == other.SubRule
     def __str__(self):
-        return self.Value + " = Set(" + self.SubRule + ", k " + self.Rel + " " + str(self.Card) + ")"
+        return str(self.Value) + " = KSet(" + str(self.SubRule) + ", k " + str(self.Rel) + " " + str(self.Card) + ")"
     
 class Cycle:
     def __init__(self, *args): # args[0] = set(args[1])
@@ -106,7 +106,7 @@ class Cycle:
         return isinstance(other, Cycle) and \
             self.SubRule == other.SubRule
     def __str__(self):
-        return self.Value + " = Cyc(" + self.SubRule + ")"
+        return str(self.Value) + " = Cyc(" + str(self.SubRule) + ")"
 
 class Atom:
     def __init__(self, *args):
@@ -121,4 +121,25 @@ class Atom:
     def __eq__(self, other):
         return isinstance(other, Atom) and self.Size == other.Size
     def __str__(self):
-        return self.Value + " = Z^" + str(self.Size)
+        return str(self.Value) + " = Z^" + str(self.Size)
+
+class Theta:
+    def __init__(self, *args): # args[0] = set(args[1])
+        self.Type = 'Theta'
+        if len(args) == 2:
+            self.Value = args[0]
+            self.SubRule = args[1]
+        elif len(args) == 1:
+            self.Value = ''
+            self.SubRule = args[0]
+        else: raise Exception('Invalid parameters')
+    def __hash__(self):
+        return hash(self.SubRule)
+    def __eq__(self, other):
+        return isinstance(other, Theta) and \
+            self.SubRule == other.SubRule
+    def __str__(self):
+        if self.Value == '':
+            return "Theta(" + str(self.SubRule) + ")"
+        else:
+            return str(self.Value) + " = Theta(" + str(self.SubRule) + ")"

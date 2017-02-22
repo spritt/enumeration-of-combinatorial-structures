@@ -12,10 +12,10 @@ def evaluateRule(rule, k, table, vals):
     if k not in table:
         table[k] = {}
     # 0 if k < valuation
-    if len(rule.Value) == 1 and k < vals[rule.Value]:
+    if isinstance(rule.Value, Theta) and k < vals[rule.Value.SubRule]:
         table[k][rule.Value] = 0.0
-    elif len(rule.Value) == 2 and k < vals[rule.Value[1]]:
-         table[k][rule.Value] = 0.0
+    elif not isinstance(rule.Value, Theta) and k < vals[rule.Value]:
+        table[k][rule.Value] = 0.0
     # A = B + C
     elif isinstance(rule, Union):
         table[k][rule.Value] = table[k][rule.SubRule1] + table[k][rule.SubRule2]
@@ -35,11 +35,16 @@ def evaluateRule(rule, k, table, vals):
     elif isinstance(rule, Set) or (isinstance(rule, KSet) and rule.Rel == "<="):
         if k == 0: table[k][rule.Value] = 1.0
         return table
+    #elif isinstance(rule, KSet):
+    #    if rule.Rel == "<=" and k == 0:
+    #        table[k][rule.Value] = 1.0
+    #        return table
+    #    else: return table
     else: raise Exception('Unsupported rule')
     # for every rule R, tabulate Theta(R) and vice versa
-    if len(rule.Value) == 2 and rule.Value[1] not in table[k]:
-        table[k][rule.Value[1]] = float(table[k][rule.Value]) / k if k > 0 else 0.0
-    elif len(rule.Value) == 1 and 'T' + rule.Value not in table[k]:
-        table[k]['T' + rule.Value] = k * float(table[k][rule.Value])
+    if isinstance(rule.Value, Theta) and rule.Value.SubRule not in table[k]:
+        table[k][rule.Value.SubRule] = float(table[k][rule.Value]) / k if k > 0 else 0.0
+    elif not isinstance(rule.Value, Theta) and Theta(rule.Value) not in table[k]:
+        table[k][Theta(rule.Value)] = k * float(table[k][rule.Value])
     # done
     return table
