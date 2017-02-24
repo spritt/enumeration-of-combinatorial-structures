@@ -1,6 +1,8 @@
 import copy
 from rules import *
 
+# test comment should be removed
+
 def ConvertToStandardForm(eq):
     r, _ = convert(eq, {}, 65)
     return r.values()
