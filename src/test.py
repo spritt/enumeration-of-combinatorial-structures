@@ -29,11 +29,20 @@ eq9 = Cycle('X', Atom(2))
 eq10 = Union('X', Atom(1), KSet('X', "=", 2))
 eq11 = Union('X', Atom(1), KSet('X', "<=", 2))
 
-eqs = [eq11]
+eqs = [eq3]
 
 # run the tests
-for eq in eqs:
-	rules = ConvertToStandardForm(eq)
-	for r in rules:
-	    print r
-	print StandardForm(rules, 10, 'X', True)
+
+def run(eq, eqs):
+    for eq in eqs:
+    	rules = ConvertToStandardForm(eq)
+    	for r in rules:
+    	    print r
+    	print StandardForm(rules, 10, 'X', True)
+
+# test unlabelled rooted trees: H = Z * Set(H)
+r = [Atom('A', 1), Product('H', 'A', 'B'), Theta('D', 'H'), Delta('C', 'D'), Product(Theta('B'), 'B', 'C'), Set('B', 'H')]
+v = {'H': 1, 'A': 1, 'B': 0, 'C': 1, 'D': 1}
+tab = EnumerateFromStandardForm(r, 10, v)
+for i in range(10):
+    print tab[i]['H']

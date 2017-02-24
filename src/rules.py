@@ -73,7 +73,7 @@ class Set:
         return str(self.Value) + " = Set(" + str(self.SubRule) + ")"
     
 class KSet:
-    def __init__(self, *args): # args[0] = set(args[1])
+    def __init__(self, *args): # args[0] = kset(args[1])
         self.Type = 'KSet'
         if len(args) == 4:
             self.Value = args[0]
@@ -93,7 +93,7 @@ class KSet:
         return str(self.Value) + " = KSet(" + str(self.SubRule) + ", k " + str(self.Rel) + " " + str(self.Card) + ")"
     
 class Cycle:
-    def __init__(self, *args): # args[0] = set(args[1])
+    def __init__(self, *args): # args[0] = cyc(args[1])
         self.Type = 'Cycle'
         if len(args) == 2:
             self.Value = args[0]
@@ -124,7 +124,7 @@ class Atom:
         return str(self.Value) + " = Z^" + str(self.Size)
 
 class Theta:
-    def __init__(self, *args): # args[0] = set(args[1])
+    def __init__(self, *args): # args[0] = theta(args[1])
         self.Type = 'Theta'
         if len(args) == 2:
             self.Value = args[0]
@@ -143,3 +143,24 @@ class Theta:
             return "Theta(" + str(self.SubRule) + ")"
         else:
             return str(self.Value) + " = Theta(" + str(self.SubRule) + ")"
+
+class Delta:
+    def __init__(self, *args): # args[0] = delta(args[1])
+        self.Type = 'Theta'
+        if len(args) == 2:
+            self.Value = args[0]
+            self.SubRule = args[1]
+        elif len(args) == 1:
+            self.Value = ''
+            self.SubRule = args[0]
+        else: raise Exception('Invalid parameters')
+    def __hash__(self):
+        return hash(self.SubRule)
+    def __eq__(self, other):
+        return isinstance(other, Theta) and \
+            self.SubRule == other.SubRule
+    def __str__(self):
+        if self.Value == '':
+            return "Delta(" + str(self.SubRule) + ")"
+        else:
+            return str(self.Value) + " = Delta(" + str(self.SubRule) + ")"

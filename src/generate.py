@@ -35,16 +35,19 @@ def evaluateRule(rule, k, table, vals):
     elif isinstance(rule, Set) or (isinstance(rule, KSet) and rule.Rel == "<="):
         if k == 0: table[k][rule.Value] = 1.0
         return table
-    #elif isinstance(rule, KSet):
-    #    if rule.Rel == "<=" and k == 0:
-    #        table[k][rule.Value] = 1.0
-    #        return table
-    #    else: return table
-    else: raise Exception('Unsupported rule')
+    # A = Theta(B)
+    elif isinstance(rule, Theta):
+        table[k][rule.Value] = k * float(table[k][rule.SubRule])
+    # A = Delta(B)
+    elif isinstance(rule, Delta):
+        table[k][rule.Value] = 0.0
+        for i in range(1, k+1):
+            table[k][rule.Value] += table[k/i][rule.SubRule] if k % i == 0 else 0.0
+    else: raise Exception("Unsupported rule " + str(rule))
     # for every rule R, tabulate Theta(R) and vice versa
     if isinstance(rule.Value, Theta) and rule.Value.SubRule not in table[k]:
         table[k][rule.Value.SubRule] = float(table[k][rule.Value]) / k if k > 0 else 0.0
-    elif not isinstance(rule.Value, Theta) and Theta(rule.Value) not in table[k]:
-        table[k][Theta(rule.Value)] = k * float(table[k][rule.Value])
+    #elif not isinstance(rule.Value, Theta) and Theta(rule.Value) not in table[k]:
+    #    table[k][Theta(rule.Value)] = k * float(table[k][rule.Value])
     # done
     return table
