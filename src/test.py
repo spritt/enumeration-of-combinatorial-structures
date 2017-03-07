@@ -42,7 +42,8 @@ def run(eq, eqs):
 
 # test unlabelled rooted trees: H = Z * Set(H)
 r = [Atom('A', 1), Product('H', 'A', 'B'), Theta('D', 'H'), Delta('C', 'D'), Product(Theta('B'), 'B', 'C'), Set('B', 'H')]
-v = {'H': 1, 'A': 1, 'B': 0, 'C': 1, 'D': 1}
+v = computeRuleValuations(r)
+#v = {'H': 1, 'A': 1, 'B': 0, 'C': 1, 'D': 1}
 tab = EnumerateFromStandardForm(r, 10, v)
 for i in range(10):
     print tab[i]['H']

@@ -6,8 +6,9 @@ from rules import *
 def computeRuleValuations(rules):
     val = {}
     for r in rules:
-        #rv = r.Value if len(r.Value) == 1 else r.Value[1]
-        rv = r.Value if not isinstance(r.Value, Theta) else r.Value.SubRule
+        if isinstance(r.Value, Theta):
+            continue
+        rv = r.Value
         if isinstance(r, Atom):
             val[rv] = r.Size
         elif isinstance(r, Set) or (isinstance(r, KSet) and r.Rel == "<="):
@@ -37,24 +38,33 @@ def sortRulesByValuation(rules):
 def valuate(v, rules):
     done = True
     for r in rules:
-        #rv = r.Value if len(r.Value) == 1 else r.Value[1]
-        rv = r.Value if not isinstance(r.Value, Theta) else r.Value.SubRule
+        if isinstance(r.Value, Theta):
+            continue
+        rv = r.Value
         prev = v[rv]
         if isinstance(r, Atom):
             continue
-        elif isinstance(r, Set) or isinstance(r, KSet):
+        elif isinstance(r, Set):
             continue
-        elif rv in v and v[rv] == 0:
-            continue
+        elif isinstance(r, KSet):
+            if rv.Rel == "<=":
+                continue
+            elif v[r.SubRule] < sys.maxint:
+                    v[rv] = rv.Card * v[rv.SubRule]
         elif isinstance(r, Union):
-            l = r.SubRule1 if not isinstance(r.SubRule1, Theta) else r.SubRule1.SubRule
-            r = r.SubRule2 if not isinstance(r.SubRule2, Theta) else r.SubRule2.SubRule
-            v[rv] = min(v[l], v[r])
+            s1 = r.SubRule1 if not isinstance(r.SubRule1, Theta) else r.SubRule1.SubRule
+            s2 = r.SubRule2 if not isinstance(r.SubRule2, Theta) else r.SubRule2.SubRule
+            v[rv] = min(v[s1], v[s2])
         elif isinstance(r, Product):
-            l = r.SubRule1 if not isinstance(r.SubRule1, Theta) else r.SubRule1.SubRule
-            r = r.SubRule2 if not isinstance(r.SubRule2, Theta) else r.SubRule2.SubRule
-            v[rv] = v[l] + v[r]
+            s1 = r.SubRule1 if not isinstance(r.SubRule1, Theta) else r.SubRule1.SubRule
+            s2 = r.SubRule2 if not isinstance(r.SubRule2, Theta) else r.SubRule2.SubRule
+            if v[s1] != sys.maxint and v[s2] != sys.maxint:
+                v[rv] = v[s1] + v[s2]
+        elif isinstance(r, Theta):
+            v[rv] = v[r.SubRule]
+        elif isinstance(r, Delta):
+            v[rv] = v[r.SubRule]
         else: raise Exception('Unsupported rule')
-        if v[rv] != prev or v[rv] > sys.maxint / 2: done = False
+        if v[rv] != prev: done = False
     if done: return v
     else: return valuate(v, rules)
