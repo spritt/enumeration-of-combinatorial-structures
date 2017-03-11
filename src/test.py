@@ -5,8 +5,8 @@ from generate import *
 
 # enumerate an object from standard form
 def StandardForm(rules, n, sym, norm):
-    sortedRules, v = sortRulesByValuation(rules)
-    tab = EnumerateFromStandardForm(sortedRules, n, v)
+    v = computeRuleValuations(rules)
+    tab = EnumerateFromStandardForm(rules, n, v)
     seq = []
     fac = 1
     for i in range(n):
@@ -33,17 +33,19 @@ eqs = [eq3]
 
 # run the tests
 
-def run(eq, eqs):
+def run(eqs):
     for eq in eqs:
     	rules = ConvertToStandardForm(eq)
     	for r in rules:
     	    print r
     	print StandardForm(rules, 10, 'X', True)
 
-# test unlabelled rooted trees: H = Z * Set(H)
-r = [Atom('A', 1), Product('H', 'A', 'B'), Theta('D', 'H'), Delta('C', 'D'), Product(Theta('B'), 'B', 'C'), Set('B', 'H')]
-v = computeRuleValuations(r)
-#v = {'H': 1, 'A': 1, 'B': 0, 'C': 1, 'D': 1}
-tab = EnumerateFromStandardForm(r, 10, v)
-for i in range(10):
-    print tab[i]['H']
+# test unlabeled rooted trees: H = Z * Set(H)
+r = {'A': Atom('A', 1), 'H': Product('H', 'A', 'B'), 'D': Theta('D', 'H'), 'C': Delta('C', 'D'), 
+        Theta('B'): Product(Theta('B'), 'B', 'C'), 'B': Set('B', 'H')}
+print StandardForm(r, 10, 'H', False)
+
+# test labeled hierarchies: H = Z + Set(H, card >= 2)
+r = {'A': Atom('A', 1), 'H': Union('H', 'A', 'U'), Theta('U'): Product(Theta('U'), 'X', 'V'), Theta('V'): Product(Theta('V'), 'X', 'W'), 
+    Theta('W'): Product(Theta('W'), 'X', 'W'), 'X': Theta('X', 'H'), 'U': KSet('U', 'H', ">=", 2), 'V': KSet('V', 'H', ">=", 1), 'W': Set('W', 'H')}
+print StandardForm(r, 10, 'H', True)
