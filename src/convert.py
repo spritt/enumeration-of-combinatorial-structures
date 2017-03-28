@@ -22,28 +22,8 @@ def convert(op, rules, v):
     else:
         raise Exception('Unsupported rule')
 
-def convertSet(op, rules, v):
-    op1 = op.SubRule
-    evalSub = False
-    val = None
-    if isinstance(op1, Union) or isinstance(op1, Product):
-        val = chr(v)
-        v += 1
-        op1.Value = val
-        evalSub = True
-    elif isinstance(op1, Atom):
-        for r in rules.values():
-            if isinstance(r, Atom) and r.Size == op1.Size:
-                val = r.Value
-                break
-        if val == None:
-            val = chr(v)
-            v += 1
-            op1.Value = val
-            rules[val] = op1
-    else: val = op1
-    op.SubRule = val
-    # create new Theta subrule unless it already exists
+# helper function
+def createThetaRule(rules, v, val):
     subVal = None
     for r in rules.values():
         if isinstance(r, Theta) and r.SubRule == val:
@@ -53,14 +33,10 @@ def convertSet(op, rules, v):
             subVal = chr(v)
             v += 1
             rules[subVal] = Theta(subVal, val)
-    # add new rules
-    rules[op.Value] = op
-    rules[Theta(op.Value)] = Product(Theta(op.Value), op.Value, subVal)
-    if evalSub: rules, v = convert(op1, rules, v)
-    return rules, v
+    return rules, v, subVal
 
-def convertKSet(op, rules, v):
-    op1 = op.SubRule
+#helper function
+def convertSubRule(rules, v, op1):
     evalSub = False
     val = None
     if isinstance(op1, Union) or isinstance(op1, Product):
@@ -79,6 +55,23 @@ def convertKSet(op, rules, v):
             op1.Value = val
             rules[val] = op1
     else: val = op1
+    return rules, v, op1, val, evalSub
+
+def convertSet(op, rules, v):
+    op1 = op.SubRule
+    rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
+    op.SubRule = val
+    # create new Theta subrule unless it already exists
+    rules, v, subVal = createThetaRule(rules, v, val)
+    # add new rules
+    rules[op.Value] = op
+    rules[Theta(op.Value)] = Product(Theta(op.Value), op.Value, subVal)
+    if evalSub: rules, v = convert(op1, rules, v)
+    return rules, v
+
+def convertKSet(op, rules, v):
+    op1 = op.SubRule
+    rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
     op.SubRule = val
     if op.Rel == "=":
         newVal = val
@@ -109,24 +102,7 @@ def convertKSet(op, rules, v):
 
 def convertSequence(op, rules, v):
     op1 = op.SubRule
-    evalSub = False
-    val = None
-    if isinstance(op1, Union) or isinstance(op1, Product):
-        val = chr(v)
-        v += 1
-        op1.Value = val
-        evalSub = True
-    elif isinstance(op1, Atom):
-        for r in rules.values():
-            if isinstance(r, Atom) and r.Size == op1.Size:
-                val = r.Value
-                break
-        if val == None:
-            val = chr(v)
-            v += 1
-            op1.Value = val
-            rules[val] = op1
-    else: val = op1
+    rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
     # A = Seq(B) -> A = 1 + A*B <- add rule for A*B
     ab = chr(v)
     v += 1
@@ -148,39 +124,14 @@ def convertSequence(op, rules, v):
 
 def convertCycle(op, rules, v):
     op1 = op.SubRule
-    evalSub = False
-    val = None
-    if isinstance(op1, Union) or isinstance(op1, Product):
-        val = chr(v)
-        v += 1
-        op1.Value = val
-        evalSub = True
-    elif isinstance(op1, Atom):
-        for r in rules.values():
-            if isinstance(r, Atom) and r.Size == op1.Size:
-                val = r.Value
-                break
-        if val == None:
-            val = chr(v)
-            v += 1
-            op1.Value = val
-            rules[val] = op1
-    else: val = op1
+    rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
     op.SubRule = val
     # A = Cyc(B) -> Theta(A) = C * Theta(B) <- add rule for C
     seq = chr(v)
     v += 1
     rules, v = convert(Sequence(seq, val), rules, v)
     # A = Cyc(B) -> Theta(A) = C * Theta(B) <- add rule for Theta(B)
-    subVal = None
-    for r in rules.values():
-        if isinstance(r, Theta) and r.SubRule == val:
-            subVal = r.Value
-            break
-    if subVal == None:
-            subVal = chr(v)
-            v += 1
-            rules[subVal] = Theta(subVal, val)
+    rules, v, subVal = createThetaRule(rules, v, val)
     # A = Seq(B) -> Theta(A) = C * Theta(B) <- complete rule     
     rules[Theta(op.Value)] = Product(Theta(op.Value), seq, subVal)
     rules[op.Value] = op
