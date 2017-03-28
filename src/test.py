@@ -30,7 +30,7 @@ eq9 = Cycle('X', Atom(2))
 eq10 = Union('X', Atom(1), KSet('X', "=", 2))
 eq11 = Union('X', Atom(1), KSet('X', "<=", 2))
 
-eqs = [eq1, eq2, eq3, eq4, eq5, eq6, eq8, eq9]
+eqs = [eq1, eq2, eq3, eq4, eq5, eq6, eq7, eq8, eq9]
 
 # run the tests
 

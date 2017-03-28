@@ -21,7 +21,7 @@ def evaluateRule(r, rules, k, table, vals):
         return table
 
     # evaluate coefficient
-    table[k][r] = evaluate(r, rules, k, table, vals, r, k)
+    table[k][r] = evaluate(r, rules, k, table, vals, [r], [k])
 
     if isinstance(r, Theta) and r.SubRule not in table[k]:
         table[k][r.SubRule] = float(table[k][r]) / k if k > 0 else 0.0
@@ -31,7 +31,7 @@ def evaluateRule(r, rules, k, table, vals):
 # recursively evaluate a coefficient
 def evaluate(r, rules, k, table, vals, r0, k0):
     def subEval(r1, k1):
-        return 0.0 if r1 == r0 and k1 == k0 else evaluate(r1, rules, k1, table, vals, r0, k0)
+        return 0.0 if r1 in r0 and k1 in k0 else evaluate(r1, rules, k1, table, vals, r0 + [r1], k0 + [k1])
     # base case
     if r in table[k]:
         return table[k][r]
