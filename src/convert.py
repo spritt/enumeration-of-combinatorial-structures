@@ -166,6 +166,7 @@ def convertCycle(op, rules, v):
             op1.Value = val
             rules[val] = op1
     else: val = op1
+    op.SubRule = val
     # A = Cyc(B) -> Theta(A) = C * Theta(B) <- add rule for C
     seq = chr(v)
     v += 1
