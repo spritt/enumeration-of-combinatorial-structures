@@ -6,6 +6,7 @@ from generate import *
 # enumerate an object from standard form
 def StandardForm(rules, n, sym, norm):
     v = computeRuleValuations(rules)
+    print v
     tab = EnumerateFromStandardForm(rules, n, v)
     seq = []
     fac = 1
@@ -29,16 +30,18 @@ eq9 = Cycle('X', Atom(2))
 eq10 = Union('X', Atom(1), KSet('X', "=", 2))
 eq11 = Union('X', Atom(1), KSet('X', "<=", 2))
 
-eqs = [eq3]
+eqs = [eq1, eq2, eq3, eq4, eq5, eq6, eq8, eq9]
 
 # run the tests
 
 def run(eqs):
     for eq in eqs:
     	rules = ConvertToStandardForm(eq)
-    	for r in rules:
-    	    print r
+    	#for r in rules:
+    	#    print r
     	print StandardForm(rules, 10, 'X', True)
+
+run(eqs)
 
 # test unlabeled rooted trees: H = Z * Set(H)
 r = {'A': Atom('A', 1), 'H': Product('H', 'A', 'B'), 'D': Theta('D', 'H'), 'C': Delta('C', 'D'), 

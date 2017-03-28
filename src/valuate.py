@@ -12,6 +12,8 @@ def computeRuleValuations(rules):
             val[r.Value] = r.Size
         elif isinstance(r, Set) or (isinstance(r, KSet) and r.Rel == "<="):
             val[r.Value] = 0 # valuation of a set is 0
+        elif isinstance(r, Cycle):
+            val[r.Value] = 1
         elif r.Value not in val:
             val[r.Value] = sys.maxint
     return valuate(val, rules)
@@ -27,6 +29,8 @@ def valuate(v, rules):
         if isinstance(r, Atom):
             continue
         elif isinstance(r, Set):
+            continue
+        elif isinstance(r, Cycle):
             continue
         elif isinstance(r, KSet):
             if r.Rel == "<=":

@@ -3,7 +3,9 @@ from rules import *
 
 def ConvertToStandardForm(eq):
     r, _ = convert(eq, {}, 65)
-    return r.values()
+    for k,v in r.iteritems():
+        print v
+    return r
 
 # helper function for ConvertToStandardForm
 def convert(op, rules, v):
@@ -41,9 +43,19 @@ def convertSet(op, rules, v):
             rules[val] = op1
     else: val = op1
     op.SubRule = val
+    # create new Theta subrule unless it already exists
+    subVal = None
+    for r in rules.values():
+        if isinstance(r, Theta) and r.SubRule == val:
+            subVal = r.Value
+            break
+    if subVal == None:
+            subVal = chr(v)
+            v += 1
+            rules[subVal] = Theta(subVal, val)
+    # add new rules
     rules[op.Value] = op
-    #rules['T' + op.Value] = Product('T' + op.Value, op.Value, 'T' + val)
-    rules[Theta(op.Value)] = Product(Theta(op.Value), op.Value, Theta(val))
+    rules[Theta(op.Value)] = Product(Theta(op.Value), op.Value, subVal)
     if evalSub: rules, v = convert(op1, rules, v)
     return rules, v
 
@@ -68,8 +80,6 @@ def convertKSet(op, rules, v):
             rules[val] = op1
     else: val = op1
     op.SubRule = val
-    #rules[op.Value] = op
-    #rules['T' + op.Value] = Product('T' + op.Value, op.Value, 'T' + val)
     if op.Rel == "=":
         newVal = val
         if op.Card > 2:
@@ -160,9 +170,19 @@ def convertCycle(op, rules, v):
     seq = chr(v)
     v += 1
     rules, v = convert(Sequence(seq, val), rules, v)
+    # A = Cyc(B) -> Theta(A) = C * Theta(B) <- add rule for Theta(B)
+    subVal = None
+    for r in rules.values():
+        if isinstance(r, Theta) and r.SubRule == val:
+            subVal = r.Value
+            break
+    if subVal == None:
+            subVal = chr(v)
+            v += 1
+            rules[subVal] = Theta(subVal, val)
     # A = Seq(B) -> Theta(A) = C * Theta(B) <- complete rule     
-    #rules['T' + op.Value] = Product('T' + op.Value, seq, 'T' + val)
-    rules[Theta(op.Value)] = Product(Theta(op.Value), seq, Theta(val))
+    rules[Theta(op.Value)] = Product(Theta(op.Value), seq, subVal)
+    rules[op.Value] = op
     if evalSub: rules, v = convert(op1, rules, v)
     return rules, v
 
