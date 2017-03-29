@@ -16,6 +16,7 @@ def evaluateRule(r, rules, k, table, vals):
 
     if isinstance(rule, Set) or (isinstance(rule, KSet) and rule.Rel == "<="):
         if k == 0: table[k][r] = 1.0
+        return table
 
     if isinstance(rule, Cycle):
         return table
