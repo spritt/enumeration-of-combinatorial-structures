@@ -35,6 +35,19 @@ def createThetaRule(rules, v, val):
             rules[subVal] = Theta(subVal, val)
     return rules, v, subVal
 
+# helper function
+def createAtomRule(rules, v, size):
+    atom = None
+    for r in rules.values():
+        if isinstance(r, Atom) and r.Size == size:
+            atom = r.Value
+            break
+    if atom == None:
+        atom = chr(v)
+        v += 1
+        rules[atom] = Atom(atom, 0)
+    return rules, v, atom
+
 #helper function
 def convertSubRule(rules, v, op1):
     evalSub = False
@@ -79,24 +92,27 @@ def convertKSet(op, rules, v):
             newVal = chr(v)
             v += 1
             rules, v = convert(KSet(newVal, val, op.Rel, op.Card - 1), rules, v)
+        rules[op.Value] = op
     elif op.Rel == "<=":
         newVal = chr(v)
         v += 1
         if op.Card > 2:
             rules, v = convert(KSet(newVal, val, op.Rel, op.Card - 1), rules, v)
         else:
-            zero = None
-            for r in rules.values():
-                if isinstance(r, Atom) and r.Size == 0:
-                    zero = r.Value
-                    break
-                if zero == None:
-                    zero = chr(v)
-                    v += 1
-                    rules[zero] = Atom(zero, 0)
+            rules, v, zero = createAtomRule(rules, v, 0)
             rules[newVal] = Union(newVal, zero, val)
-            rules[op.Value] = op
-    rules[Theta(op.Value)] = Product(Theta(op.Value), newVal, Theta(val))    
+        rules[op.Value] = op
+    elif op.Rel == ">=":
+        newVal = chr(v)
+        v += 1
+        if op.Card > 1:
+            rules, v = convert(KSet(newVal, val, op.Rel, op.Card - 1), rules, v)
+        else:
+            rules, v = convert(Set(newVal, val), rules, v)
+        rules[op.Value] = op
+    # create new Theta subrule unless it already exists
+    rules, v, subVal = createThetaRule(rules, v, val)
+    rules[Theta(op.Value)] = Product(Theta(op.Value), newVal, subVal)    
     if evalSub: rules, v = convert(op1, rules, v)
     return rules, v
 
@@ -108,15 +124,7 @@ def convertSequence(op, rules, v):
     v += 1
     rules[ab] = Product(ab, op.Value, val)
     # A = Seq(B) -> A = 1 + A*B <- add rule for 1
-    zero = None
-    for r in rules.values():
-        if isinstance(r, Atom) and r.Size == 0:
-            zero = r.Value
-            break
-        if zero == None:
-            zero = chr(v)
-            v += 1
-            rules[zero] = Atom(zero, 0)
+    rules, v, zero = createAtomRule(rules, v, 0)
     # A = Seq(B) -> A = 1 + A*B <- complete rule     
     rules[op.Value] = Union(op.Value, zero, ab)
     if evalSub: rules, v = convert(op1, rules, v)
