@@ -33,7 +33,7 @@ eq12 = Union('X', Atom(1), KSet('X', "=", 2))
 eq13 = Union('X', Atom(1), KSet('X', ">=", 2))
 
 eqs = [eq1, eq2, eq3, eq4, eq5, eq6, eq7, eq8, eq9, eq10, eq11, eq12, eq13]
-#eqs = [eq12, eq11, eq10]
+#eqs = [eq3]
 
 # run the tests
 
@@ -49,7 +49,11 @@ def run(eqs):
     	#    print r
     	print StandardForm(rules, 10, 'X', True)
 
-run(eqs)
+#run(eqs)
+
+eq = Product('H', Atom(1), Set('H'))
+rules = ConvertToStandardForm(eq, labeled=False)
+print StandardForm(rules, 10, 'H', False)
 
 print("")
 

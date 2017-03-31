@@ -1,24 +1,24 @@
 import copy
 from rules import *
 
-def ConvertToStandardForm(eq):
-    r, _ = convert(eq, {}, 65)
+def ConvertToStandardForm(eq, labeled=True):
+    r, _ = convert(eq, {}, 65, labeled)
     for k,v in r.iteritems():
         print v
     return r
 
 # helper function for ConvertToStandardForm
-def convert(op, rules, v):
+def convert(op, rules, v, labeled=True):
     if isinstance(op, Set):
-        return convertSet(op, rules, v)
+        return convertSet(op, rules, v, labeled) if labeled else convertSetUnlabeled(op, rules, v, labeled)
     elif isinstance(op, KSet):
-        return convertKSet(op, rules, v)
+        return convertKSet(op, rules, v, labeled)
     elif isinstance(op, Sequence):
-        return convertSequence(op, rules, v)
+        return convertSequence(op, rules, v, labeled)
     elif isinstance(op, Cycle):
-        return convertCycle(op, rules, v)
+        return convertCycle(op, rules, v, labeled)
     elif isinstance(op, Union) or isinstance(op, Product):
-        return convertBinary(op, rules, v)
+        return convertBinary(op, rules, v, labeled)
     else:
         raise Exception('Unsupported rule')
 
@@ -33,6 +33,19 @@ def createThetaRule(rules, v, val):
             subVal = chr(v)
             v += 1
             rules[subVal] = Theta(subVal, val)
+    return rules, v, subVal
+
+# helper function
+def createDeltaRule(rules, v, val):
+    subVal = None
+    for r in rules.values():
+        if isinstance(r, Delta) and r.SubRule == val:
+            subVal = r.Value
+            break
+    if subVal == None:
+            subVal = chr(v)
+            v += 1
+            rules[subVal] = Delta(subVal, val)
     return rules, v, subVal
 
 # helper function
@@ -70,7 +83,7 @@ def convertSubRule(rules, v, op1):
     else: val = op1
     return rules, v, op1, val, evalSub
 
-def convertSet(op, rules, v):
+def convertSet(op, rules, v, labeled):
     op1 = op.SubRule
     rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
     op.SubRule = val
@@ -79,10 +92,24 @@ def convertSet(op, rules, v):
     # add new rules
     rules[op.Value] = op
     rules[Theta(op.Value)] = Product(Theta(op.Value), op.Value, subVal)
-    if evalSub: rules, v = convert(op1, rules, v)
+    if evalSub: rules, v = convert(op1, rules, v, labeled)
     return rules, v
 
-def convertKSet(op, rules, v):
+def convertSetUnlabeled(op, rules, v, labeled):
+    op1 = op.SubRule
+    rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
+    op.SubRule = val
+    # create new Theta subrule unless it already exists
+    rules, v, subValTheta = createThetaRule(rules, v, val)
+    # create new Delta subrule unless it already exists
+    rules, v, subValDelta = createDeltaRule(rules, v, subValTheta)
+    # add new rules
+    rules[op.Value] = op
+    rules[Theta(op.Value)] = Product(Theta(op.Value), op.Value, subValDelta)
+    if evalSub: rules, v = convert(op1, rules, v, labeled)
+    return rules, v
+
+def convertKSet(op, rules, v, labeled):
     op1 = op.SubRule
     rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
     op.SubRule = val
@@ -91,13 +118,13 @@ def convertKSet(op, rules, v):
         if op.Card > 2:
             newVal = chr(v)
             v += 1
-            rules, v = convert(KSet(newVal, val, op.Rel, op.Card - 1), rules, v)
+            rules, v = convert(KSet(newVal, val, op.Rel, op.Card - 1), rules, v, labeled)
         rules[op.Value] = op
     elif op.Rel == "<=":
         newVal = chr(v)
         v += 1
         if op.Card > 2:
-            rules, v = convert(KSet(newVal, val, op.Rel, op.Card - 1), rules, v)
+            rules, v = convert(KSet(newVal, val, op.Rel, op.Card - 1), rules, v, labeled)
         else:
             rules, v, zero = createAtomRule(rules, v, 0)
             rules[newVal] = Union(newVal, zero, val)
@@ -106,17 +133,17 @@ def convertKSet(op, rules, v):
         newVal = chr(v)
         v += 1
         if op.Card > 1:
-            rules, v = convert(KSet(newVal, val, op.Rel, op.Card - 1), rules, v)
+            rules, v = convert(KSet(newVal, val, op.Rel, op.Card - 1), rules, v, labeled)
         else:
-            rules, v = convert(Set(newVal, val), rules, v)
+            rules, v = convert(Set(newVal, val), rules, v, labeled)
         rules[op.Value] = op
     # create new Theta subrule unless it already exists
     rules, v, subVal = createThetaRule(rules, v, val)
     rules[Theta(op.Value)] = Product(Theta(op.Value), newVal, subVal)    
-    if evalSub: rules, v = convert(op1, rules, v)
+    if evalSub: rules, v = convert(op1, rules, v, labeled)
     return rules, v
 
-def convertSequence(op, rules, v):
+def convertSequence(op, rules, v, labeled):
     op1 = op.SubRule
     rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
     # A = Seq(B) -> A = 1 + A*B <- add rule for A*B
@@ -127,26 +154,26 @@ def convertSequence(op, rules, v):
     rules, v, zero = createAtomRule(rules, v, 0)
     # A = Seq(B) -> A = 1 + A*B <- complete rule     
     rules[op.Value] = Union(op.Value, zero, ab)
-    if evalSub: rules, v = convert(op1, rules, v)
+    if evalSub: rules, v = convert(op1, rules, v, labeled)
     return rules, v
 
-def convertCycle(op, rules, v):
+def convertCycle(op, rules, v, labeled):
     op1 = op.SubRule
     rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
     op.SubRule = val
     # A = Cyc(B) -> Theta(A) = C * Theta(B) <- add rule for C
     seq = chr(v)
     v += 1
-    rules, v = convert(Sequence(seq, val), rules, v)
+    rules, v = convert(Sequence(seq, val), rules, v, labeled)
     # A = Cyc(B) -> Theta(A) = C * Theta(B) <- add rule for Theta(B)
     rules, v, subVal = createThetaRule(rules, v, val)
     # A = Seq(B) -> Theta(A) = C * Theta(B) <- complete rule     
     rules[Theta(op.Value)] = Product(Theta(op.Value), seq, subVal)
     rules[op.Value] = op
-    if evalSub: rules, v = convert(op1, rules, v)
+    if evalSub: rules, v = convert(op1, rules, v, labeled)
     return rules, v
 
-def convertBinary(op, rules, v):
+def convertBinary(op, rules, v, labeled):
     op1, op2 = (op.SubRule1, op.SubRule2)
     val1, val2 = (None, None)
     evalLeft, evalRight = (False, False)
@@ -222,8 +249,8 @@ def convertBinary(op, rules, v):
     rules[op.Value] = op # rules += [op]
     if evalLeft:
         op1.Value = val1
-        rules, v = convert(op1, rules, v)
+        rules, v = convert(op1, rules, v, labeled)
     if evalRight:
         op2.Value = val2
-        rules, v = convert(op2, rules, v)
+        rules, v = convert(op2, rules, v, labeled)
     return rules, v
