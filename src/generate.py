@@ -1,4 +1,5 @@
 from rules import *
+from util import *
 
 def EnumerateFromStandardForm(rules, n, v):
     t = {}
@@ -66,5 +67,10 @@ def evaluate(r, rules, k, table, vals, r0, k0):
         dlt = 0.0
         for i in range(1, k+1):
             dlt += subEval(rule.SubRule, k/i) if k % i == 0 else 0.0
+        return dlt
+    elif isinstance(rule, CycDelta):
+        dlt = 0.0
+        for i in range(1, k+1):
+            dlt += tot(k) * subEval(rule.SubRule, k/i) if k % i == 0 else 0.0
         return dlt
     else: raise Exception("Unsupported rule " + str(rule))

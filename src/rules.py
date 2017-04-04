@@ -91,6 +91,26 @@ class KSet:
             self.SubRule == other.SubRule
     def __str__(self):
         return str(self.Value) + " = KSet(" + str(self.SubRule) + ", k " + str(self.Rel) + " " + str(self.Card) + ")"
+
+class KCycle:
+    def __init__(self, *args): # args[0] = kcyc(args[1])
+        self.Type = 'KCycle'
+        if len(args) == 4:
+            self.Value = args[0]
+            self.SubRule = args[1]
+            self.Rel = args[2]
+            self.Card = args[3]
+        elif len(args) == 3:
+            self.Value = ''
+            self.SubRule = args[0]
+            self.Rel = args[1]
+            self.Card = args[2]
+        else: raise Exception('Invalid parameters')
+    def __eq__(self, other):
+        return isinstance(other, KCycle) and \
+            self.SubRule == other.SubRule
+    def __str__(self):
+        return str(self.Value) + " = KCyc(" + str(self.SubRule) + ", k " + str(self.Rel) + " " + str(self.Card) + ")"
     
 class Cycle:
     def __init__(self, *args): # args[0] = cyc(args[1])
@@ -146,7 +166,7 @@ class Theta:
 
 class Delta:
     def __init__(self, *args): # args[0] = delta(args[1])
-        self.Type = 'Theta'
+        self.Type = 'Delta'
         if len(args) == 2:
             self.Value = args[0]
             self.SubRule = args[1]
@@ -157,10 +177,31 @@ class Delta:
     def __hash__(self):
         return hash(self.SubRule)
     def __eq__(self, other):
-        return isinstance(other, Theta) and \
+        return isinstance(other, Delta) and \
             self.SubRule == other.SubRule
     def __str__(self):
         if self.Value == '':
             return "Delta(" + str(self.SubRule) + ")"
         else:
             return str(self.Value) + " = Delta(" + str(self.SubRule) + ")"
+
+class CycDelta:
+    def __init__(self, *args): # args[0] = delta(args[1])
+        self.Type = 'CycDelta'
+        if len(args) == 2:
+            self.Value = args[0]
+            self.SubRule = args[1]
+        elif len(args) == 1:
+            self.Value = ''
+            self.SubRule = args[0]
+        else: raise Exception('Invalid parameters')
+    def __hash__(self):
+        return hash(self.SubRule)
+    def __eq__(self, other):
+        return isinstance(other, CycDelta) and \
+            self.SubRule == other.SubRule
+    def __str__(self):
+        if self.Value == '':
+            return "CycDelta(" + str(self.SubRule) + ")"
+        else:
+            return str(self.Value) + " = CycDelta(" + str(self.SubRule) + ")"

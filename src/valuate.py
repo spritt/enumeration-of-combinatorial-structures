@@ -12,7 +12,7 @@ def computeRuleValuations(rules):
             val[r.Value] = r.Size
         elif isinstance(r, Set) or (isinstance(r, KSet) and r.Rel == "<="):
             val[r.Value] = 0 # valuation of a set is 0
-        elif isinstance(r, Cycle):
+        elif isinstance(r, Cycle) or (isinstance(r, KCycle) and r.Rel == "<="):
             val[r.Value] = 1
         elif r.Value not in val:
             val[r.Value] = sys.maxint
@@ -37,6 +37,11 @@ def valuate(v, rules):
                 continue
             elif v[r.SubRule] < sys.maxint:
                     v[rv] = r.Card * v[r.SubRule]
+        elif isinstance(r, KCycle):
+            if r.Rel == "<=":
+                continue
+            elif v[r.SubRule] < sys.maxint:
+                    v[rv] = r.Card * v[r.SubRule]
         elif isinstance(r, Union):
             s1 = r.SubRule1 if not isinstance(r.SubRule1, Theta) else r.SubRule1.SubRule
             s2 = r.SubRule2 if not isinstance(r.SubRule2, Theta) else r.SubRule2.SubRule
@@ -49,7 +54,7 @@ def valuate(v, rules):
         elif isinstance(r, Theta):
             if r.SubRule in v:
                 v[rv] = v[r.SubRule]
-        elif isinstance(r, Delta):
+        elif isinstance(r, Delta) or isinstance(r, CycDelta):
             if r.SubRule in v:
                 v[rv] = v[r.SubRule]
         else: raise Exception('Unsupported rule')

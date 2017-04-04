@@ -16,7 +16,7 @@ def convert(op, rules, v, labeled=True):
     elif isinstance(op, Sequence):
         return convertSequence(op, rules, v, labeled)
     elif isinstance(op, Cycle):
-        return convertCycle(op, rules, v, labeled)
+        return convertCycle(op, rules, v, labeled) if labeled else convertCycleUnlabeled(op, rules, v, labeled)
     elif isinstance(op, Union) or isinstance(op, Product):
         return convertBinary(op, rules, v, labeled)
     else:
@@ -83,6 +83,20 @@ def convertSubRule(rules, v, op1):
     else: val = op1
     return rules, v, op1, val, evalSub
 
+def convertSequence(op, rules, v, labeled):
+    op1 = op.SubRule
+    rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
+    # A = Seq(B) -> A = 1 + A*B <- add rule for A*B
+    ab = chr(v)
+    v += 1
+    rules[ab] = Product(ab, op.Value, val)
+    # A = Seq(B) -> A = 1 + A*B <- add rule for 1
+    rules, v, zero = createAtomRule(rules, v, 0)
+    # A = Seq(B) -> A = 1 + A*B <- complete rule     
+    rules[op.Value] = Union(op.Value, zero, ab)
+    if evalSub: rules, v = convert(op1, rules, v, labeled)
+    return rules, v
+
 def convertSet(op, rules, v, labeled):
     op1 = op.SubRule
     rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
@@ -143,20 +157,6 @@ def convertKSet(op, rules, v, labeled):
     if evalSub: rules, v = convert(op1, rules, v, labeled)
     return rules, v
 
-def convertSequence(op, rules, v, labeled):
-    op1 = op.SubRule
-    rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
-    # A = Seq(B) -> A = 1 + A*B <- add rule for A*B
-    ab = chr(v)
-    v += 1
-    rules[ab] = Product(ab, op.Value, val)
-    # A = Seq(B) -> A = 1 + A*B <- add rule for 1
-    rules, v, zero = createAtomRule(rules, v, 0)
-    # A = Seq(B) -> A = 1 + A*B <- complete rule     
-    rules[op.Value] = Union(op.Value, zero, ab)
-    if evalSub: rules, v = convert(op1, rules, v, labeled)
-    return rules, v
-
 def convertCycle(op, rules, v, labeled):
     op1 = op.SubRule
     rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
@@ -169,6 +169,26 @@ def convertCycle(op, rules, v, labeled):
     rules, v, subVal = createThetaRule(rules, v, val)
     # A = Seq(B) -> Theta(A) = C * Theta(B) <- complete rule     
     rules[Theta(op.Value)] = Product(Theta(op.Value), seq, subVal)
+    rules[op.Value] = op
+    if evalSub: rules, v = convert(op1, rules, v, labeled)
+    return rules, v
+
+def convertCycleUnlabeled(op, rules, v, labeled):
+    op1 = op.SubRule
+    rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
+    op.SubRule = val
+    # Theta(A) = C * Theta(B) <- add rule for C
+    seq = chr(v)
+    v += 1
+    rules, v = convert(Sequence(seq, val), rules, v, labeled)
+    # Theta(A) = C * Theta(B) <- add rule for Theta(B)
+    rules, v, subVal = createThetaRule(rules, v, val)
+    # Theta(A) = C * Theta(B)  
+    prod = chr(v)
+    v += 1
+    rules[prod] = Product(prod, seq, subVal)
+    # Theta(A) = CycDelta(C * Theta(B))
+    rules[Theta(op.Value)] = CycDelta(Theta(op.Value), prod)
     rules[op.Value] = op
     if evalSub: rules, v = convert(op1, rules, v, labeled)
     return rules, v

@@ -52,10 +52,20 @@ def run(eqs):
 #run(eqs)
 
 eq = Product('H', Atom(1), Set('H'))
-rules = ConvertToStandardForm(eq, labeled=False)
-print StandardForm(rules, 10, 'H', False)
+rules1 = ConvertToStandardForm(eq, labeled=False)
+print StandardForm(rules1, 10, 'H', False)
 
 print("")
+
+rules2 = ConvertToStandardForm(eq8, labeled=True) 
+print StandardForm(rules2, 10, 'X', True)
+
+eq8 = Cycle('X', Atom(1))
+
+print("")
+
+rules3 = ConvertToStandardForm(eq8, labeled=False) 
+print StandardForm(rules3, 10, 'X', False)
 
 # test unlabeled rooted trees: H = Z * Set(H)
 #r = {'A': Atom('A', 1), 'H': Product('H', 'A', 'B'), 'D': Theta('D', 'H'), 'C': Delta('C', 'D'), 
