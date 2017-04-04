@@ -1,8 +1,11 @@
 import copy
 from rules import *
 
-def ConvertToStandardForm(eq, labeled=True):
-    r, _ = convert(eq, {}, 65, labeled)
+def ConvertToStandardForm(eqs, labeled=True):
+    v = 65
+    r = {}
+    for eq in eqs:
+        r, v = convert(eq, r, v, labeled)
     for k,v in r.iteritems():
         print v
     return r

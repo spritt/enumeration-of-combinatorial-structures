@@ -59,6 +59,8 @@ def evaluate(r, rules, k, table, vals, r0, k0):
         return conv
     elif isinstance(rule, Set) or (isinstance(rule, KSet) and rule.Rel == "<="):
         return 1.0
+    elif isinstance(rule, Cycle):
+        return subEval(Theta(r), k) / k if k > 0 else 0.0
     elif isinstance(rule, KSet) and rule.Rel != "<=":
         return subEval(Theta(r), k) / k if k > 0 else 0.0
     elif isinstance(rule, Theta):
