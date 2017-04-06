@@ -68,11 +68,6 @@ def evaluate(r, rules, k, table, vals, r0, k0):
     elif isinstance(rule, Delta):
         dlt = 0.0
         for i in range(1, k+1):
-            dlt += subEval(rule.SubRule, k/i) if k % i == 0 else 0.0
-        return dlt
-    elif isinstance(rule, CycDelta):
-        dlt = 0.0
-        for i in range(1, k+1):
-            dlt += tot(i) * subEval(rule.SubRule, k/i) if k % i == 0 else 0.0
+            dlt += rule.Function(i) * subEval(rule.SubRule, k/i) if k % i == 0 else 0.0
         return dlt
     else: raise Exception("Unsupported rule " + str(rule))

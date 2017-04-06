@@ -1,5 +1,6 @@
 import copy
 from rules import *
+from util import *
 
 def ConvertToStandardForm(eqs, labeled=True):
     v = 65
@@ -39,7 +40,7 @@ def createThetaRule(rules, v, val):
     return rules, v, subVal
 
 # helper function
-def createDeltaRule(rules, v, val):
+def createDeltaRule(rules, v, val, fun):
     subVal = None
     for r in rules.values():
         if isinstance(r, Delta) and r.SubRule == val:
@@ -48,7 +49,7 @@ def createDeltaRule(rules, v, val):
     if subVal == None:
             subVal = chr(v)
             v += 1
-            rules[subVal] = Delta(subVal, val)
+            rules[subVal] = Delta(subVal, val, fun)
     return rules, v, subVal
 
 # helper function
@@ -119,7 +120,7 @@ def convertSetUnlabeled(op, rules, v, labeled):
     # create new Theta subrule unless it already exists
     rules, v, subValTheta = createThetaRule(rules, v, val)
     # create new Delta subrule unless it already exists
-    rules, v, subValDelta = createDeltaRule(rules, v, subValTheta)
+    rules, v, subValDelta = createDeltaRule(rules, v, subValTheta, lambda x : 1)
     # add new rules
     rules[op.Value] = op
     rules[Theta(op.Value)] = Product(Theta(op.Value), op.Value, subValDelta)
@@ -190,8 +191,8 @@ def convertCycleUnlabeled(op, rules, v, labeled):
     prod = chr(v)
     v += 1
     rules[prod] = Product(prod, seq, subVal)
-    # Theta(A) = CycDelta(C * Theta(B))
-    rules[Theta(op.Value)] = CycDelta(Theta(op.Value), prod)
+    # Theta(A) = Delta(C * Theta(B))
+    rules[Theta(op.Value)] = Delta(Theta(op.Value), prod, lambda x: tot(x))
     rules[op.Value] = op
     if evalSub: rules, v = convert(op1, rules, v, labeled)
     return rules, v

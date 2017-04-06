@@ -54,7 +54,7 @@ def valuate(v, rules):
         elif isinstance(r, Theta):
             if r.SubRule in v:
                 v[rv] = v[r.SubRule]
-        elif isinstance(r, Delta) or isinstance(r, CycDelta):
+        elif isinstance(r, Delta):
             if r.SubRule in v:
                 v[rv] = v[r.SubRule]
         else: raise Exception('Unsupported rule')
