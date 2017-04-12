@@ -23,6 +23,8 @@ def convert(op, rules, v, labeled=True):
         return convertKSequence(op, rules, v, labeled)
     elif isinstance(op, Cycle):
         return convertCycle(op, rules, v, labeled) if labeled else convertCycleUnlabeled(op, rules, v, labeled)
+    elif isinstance(op, KCycle):
+        return convertKCycle(op, rules, v, labeled)
     elif isinstance(op, Union) or isinstance(op, Product):
         return convertBinary(op, rules, v, labeled)
     else:
@@ -250,9 +252,24 @@ def convertCycle(op, rules, v, labeled):
     v += 1
     rules, v = convert(Sequence(seq, val), rules, v, labeled)
     # A = Cyc(B) -> Theta(A) = C * Theta(B) <- add rule for Theta(B)
-    rules, v, subVal = createThetaRule(rules, v, val)
+    rules, v, thetaVal = createThetaRule(rules, v, val)
     # A = Seq(B) -> Theta(A) = C * Theta(B) <- complete rule     
-    rules[Theta(op.Value)] = Product(Theta(op.Value), seq, subVal)
+    rules[Theta(op.Value)] = Product(Theta(op.Value), seq, thetaVal)
+    rules[op.Value] = op
+    if evalSub: rules, v = convert(op1, rules, v, labeled)
+    return rules, v
+
+def convertKCycle(op, rules, v, labeled):
+    op1 = op.SubRule
+    rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
+    op.SubRule = val
+    # A = Cyc_k(B) -> Theta(A) = Seq_{k-1}(B) * Theta(B) <- add rule for Seq_{k-1}(B)
+    seq = chr(v); v += 1
+    rules, v = convert(KSequence(seq, val, op.Rel, op.Card - 1), rules, v, labeled)
+    # A = Cyc_k(B) -> Theta(A) = Seq_{k-1}(B) * Theta(B) <- add rule for Theta(B)
+    rules, v, thetaVal = createThetaRule(rules, v, val)
+    # A = Cyc_k(B) -> Theta(A) = Seq_{k-1}(B) * Theta(B) <- complete rule
+    rules[Theta(op.Value)] = Product(Theta(op.Value), seq, thetaVal)
     rules[op.Value] = op
     if evalSub: rules, v = convert(op1, rules, v, labeled)
     return rules, v
