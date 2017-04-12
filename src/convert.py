@@ -19,6 +19,8 @@ def convert(op, rules, v, labeled=True):
         return convertKSet(op, rules, v, labeled)
     elif isinstance(op, Sequence):
         return convertSequence(op, rules, v, labeled)
+    elif isinstance(op, KSequence):
+        return convertKSequence(op, rules, v, labeled)
     elif isinstance(op, Cycle):
         return convertCycle(op, rules, v, labeled) if labeled else convertCycleUnlabeled(op, rules, v, labeled)
     elif isinstance(op, Union) or isinstance(op, Product):
@@ -38,6 +40,23 @@ def createThetaRule(rules, v, val):
             v += 1
             rules[subVal] = Theta(subVal, val)
     return rules, v, subVal
+
+# binary exponentiation for sequences
+def exp(rules, v, val, n):
+    subVal = val
+    if n == 1:
+        return rules, v, subVal
+    elif n % 2 == 0:
+        subVal = chr(v); v += 1
+        rules[subVal] = Product(subVal, val, val)
+        return exp(rules, v, subVal, n / 2)
+    else:
+        subVal = chr(v); v += 1
+        rules[subVal] = Product(subVal, val, val)
+        rules, v, subVal = exp(rules, v, subVal, (n - 1) / 2)
+        subVal2 = chr(v); v += 1
+        rules[subVal2] = Product(subVal2, val, subVal)
+        return rules, v, subVal2
 
 # helper function
 def createDeltaRule(rules, v, val, fun):
@@ -101,6 +120,35 @@ def convertSequence(op, rules, v, labeled):
     if evalSub: rules, v = convert(op1, rules, v, labeled)
     return rules, v
 
+def convertKSequence(op, rules, v, labeled):
+    op1 = op.SubRule
+    rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
+    if op.Rel == "=": # B^k
+        rules, v, subVal = exp(rules, v, val, op.Card)
+        rules[subVal].Value = op.Value
+        rules[op.Value] = rules[subVal]; del rules[subVal]
+    elif op.Rel == ">=": # Seq(B) * B^k
+        rules, v, val = exp(rules, v, val, op.Card)
+        newVal = chr(v); v += 1
+        rules, v = convert(Sequence(newVal, op1), rules, v, labeled)
+        rules[op.Value] = Product(op.Value, val, newVal)
+    elif op.Rel == "<=": # 1 + B + B*B + B*B*B + ... + B^k
+        k = op.Card
+        rules, v, yval = createAtomRule(rules, v, 0)
+        xval = chr(v); v += 1
+        rules[op.Value] = Union(op.Value, yval, xval)
+        for i in range(2, k+1):
+            xvalNew = chr(v); v += 1
+            yvalNew = val
+            if i > 2:
+                yvalNew = chr(v); v += 1
+                rules[yvalNew] = Product(yvalNew, yval, val)
+            rules[xval] = Union(xval, yvalNew, xvalNew)
+            xval = xvalNew
+            yval = yvalNew
+        rules[xval] = Product(xval, yval, val)
+    return rules, v
+
 def convertSet(op, rules, v, labeled):
     op1 = op.SubRule
     rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
@@ -154,6 +202,38 @@ def convertKSet(op, rules, v, labeled):
             rules, v = convert(KSet(newVal, val, op.Rel, op.Card - 1), rules, v, labeled)
         else:
             rules, v = convert(Set(newVal, val), rules, v, labeled)
+        rules[op.Value] = op
+    # create new Theta subrule unless it already exists
+    rules, v, subVal = createThetaRule(rules, v, val)
+    rules[Theta(op.Value)] = Product(Theta(op.Value), newVal, subVal)    
+    if evalSub: rules, v = convert(op1, rules, v, labeled)
+    return rules, v
+
+def convertKSetUnlabeled(op, rules, v, labeled):
+    op1 = op.SubRule
+    rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
+    op.SubRule = val
+    if op.Rel == "=":
+        vals = [chr(v + i) for i in range(op.Card) - 1]
+        v += len(vals)
+        # Theta B(k) = B(k-1) * Theta A + B(k-2) * Delta(2) Theta A + ... + B(0) * Delta(k) Theta A
+        for i in range(1,op.Card):
+            newVal = val
+            # create new Theta subrule unless it already exists
+            rules, v, thetaVal = createThetaRule(rules, v, val)
+            # create new Delta subrule unless it already exists
+            rules, v, deltaVal = createDeltaRule(rules, v, subValTheta, lambda x : 1 if x == i else 0)
+            # recurse on each element
+            if op.Card > 1:
+                newVal = chr(v)
+                v += 1
+                rules, v = convert(KSet(newVal, val, op.Rel, op.Card - i), rules, v, labeled)
+        
+        newVal = val
+        if op.Card > 2:
+            newVal = chr(v)
+            v += 1
+            rules, v = convert(KSet(newVal, val, op.Rel, op.Card - 1), rules, v, labeled)
         rules[op.Value] = op
     # create new Theta subrule unless it already exists
     rules, v, subVal = createThetaRule(rules, v, val)
