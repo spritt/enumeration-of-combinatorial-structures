@@ -237,7 +237,7 @@ def convertKSetUnlabeled(op, rules, v, labeled):
                 rules, v, subVal = createAtomRule(rules, v, 0)
             else:
                 subVal = chr(v); v += 1
-                rules, v = convert(convertKSetUnlabeled(subVal, val, op.Rel, k - i), rules, v, labeled)
+                rules, v = convert(KSet(subVal, val, op.Rel, k - i), rules, v, labeled)
             xvals[i-1] = subVal
         ###### Now sum the terms ######
         sumVal = chr(v); v += 1
