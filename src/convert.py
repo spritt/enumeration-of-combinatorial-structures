@@ -16,7 +16,7 @@ def convert(op, rules, v, labeled=True):
     if isinstance(op, Set):
         return convertSet(op, rules, v, labeled) if labeled else convertSetUnlabeled(op, rules, v, labeled)
     elif isinstance(op, KSet):
-        return convertKSet(op, rules, v, labeled)
+        return convertKSet(op, rules, v, labeled) if labeled else convertKSetUnlabeled(op, rules, v, labeled)
     elif isinstance(op, Sequence):
         return convertSequence(op, rules, v, labeled)
     elif isinstance(op, KSequence):
@@ -29,6 +29,9 @@ def convert(op, rules, v, labeled=True):
         return convertBinary(op, rules, v, labeled)
     else:
         raise Exception('Unsupported rule')
+
+def callback(msg):
+    print msg
 
 # helper function
 def createThetaRule(rules, v, val):
@@ -63,10 +66,10 @@ def exp(rules, v, val, n):
 # helper function
 def createDeltaRule(rules, v, val, fun):
     subVal = None
-    for r in rules.values():
-        if isinstance(r, Delta) and r.SubRule == val:
-            subVal = r.Value
-            break
+    #for r in rules.values():
+    #    if isinstance(r, Delta) and r.SubRule == val:
+    #        subVal = r.Value
+    #        break
     if subVal == None:
             subVal = chr(v)
             v += 1
@@ -215,31 +218,41 @@ def convertKSetUnlabeled(op, rules, v, labeled):
     op1 = op.SubRule
     rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
     op.SubRule = val
+    k = op.Card
     if op.Rel == "=":
-        vals = [chr(v + i) for i in range(op.Card) - 1]
-        v += len(vals)
-        # Theta B(k) = B(k-1) * Theta A + B(k-2) * Delta(2) Theta A + ... + B(0) * Delta(k) Theta A
-        for i in range(1,op.Card):
-            newVal = val
+        xvals = [chr(v + i) for i in range(k)]; v += len(xvals)
+        yvals = [chr(v + i) for i in range(k)]; v += len(yvals)
+        ###### First create and store the terms ######
+        for i in range(1,k+1):
+            ###### Create Delta term ##########
             # create new Theta subrule unless it already exists
-            rules, v, thetaVal = createThetaRule(rules, v, val)
+            rules, v, subValTheta = createThetaRule(rules, v, val)
             # create new Delta subrule unless it already exists
-            rules, v, deltaVal = createDeltaRule(rules, v, subValTheta, lambda x : 1 if x == i else 0)
-            # recurse on each element
-            if op.Card > 1:
-                newVal = chr(v)
-                v += 1
-                rules, v = convert(KSet(newVal, val, op.Rel, op.Card - i), rules, v, labeled)
-        
-        newVal = val
-        if op.Card > 2:
-            newVal = chr(v)
-            v += 1
-            rules, v = convert(KSet(newVal, val, op.Rel, op.Card - 1), rules, v, labeled)
-        rules[op.Value] = op
-    # create new Theta subrule unless it already exists
-    rules, v, subVal = createThetaRule(rules, v, val)
-    rules[Theta(op.Value)] = Product(Theta(op.Value), newVal, subVal)    
+            rules, v, subValDelta = createDeltaRule(rules, v, subValTheta, lambda x, y=i : 1 if x == y else 0)
+            yvals[i-1] = subValDelta
+            ###### Create recurrent term ######
+            if k - i == 1: 
+                subVal = val
+            elif k - i == 0:
+                rules, v, subVal = createAtomRule(rules, v, 0)
+            else:
+                subVal = chr(v); v += 1
+                rules, v = convert(convertKSetUnlabeled(subVal, val, op.Rel, k - i), rules, v, labeled)
+            xvals[i-1] = subVal
+        ###### Now sum the terms ######
+        sumVal = chr(v); v += 1
+        rules[sumVal] = Product(sumVal, xvals[0], yvals[0]) # first term
+        for i in range(1,k):
+            ###### Product of delta term and recurrent term ######
+            prodVal = chr(v); v += 1
+            rules[prodVal] = Product(prodVal, xvals[i], yvals[i])
+            if i < k-1: # iteratively sum
+                newVal = chr(v); v += 1
+                rules[newVal] = Union(newVal, sumVal, prodVal)
+                sumVal = newVal
+            else: # the complete rule
+                rules[Theta(op.Value)] = Union(Theta(op.Value), sumVal, prodVal)
+    rules[op.Value] = op
     if evalSub: rules, v = convert(op1, rules, v, labeled)
     return rules, v
 
