@@ -30,9 +30,6 @@ def convert(op, rules, v, labeled=True):
     else:
         raise Exception('Unsupported rule')
 
-def callback(msg):
-    print msg
-
 # helper function
 def createThetaRule(rules, v, val):
     subVal = None
@@ -219,39 +216,56 @@ def convertKSetUnlabeled(op, rules, v, labeled):
     rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
     op.SubRule = val
     k = op.Card
-    if op.Rel == "=":
-        xvals = [chr(v + i) for i in range(k)]; v += len(xvals)
-        yvals = [chr(v + i) for i in range(k)]; v += len(yvals)
-        ###### First create and store the terms ######
-        for i in range(1,k+1):
-            ###### Create Delta term ##########
-            # create new Theta subrule unless it already exists
-            rules, v, subValTheta = createThetaRule(rules, v, val)
-            # create new Delta subrule unless it already exists
+    xvals = [chr(v + i) for i in range(k)]; v += len(xvals)
+    yvals = [chr(v + i) for i in range(k)]; v += len(yvals)
+    ###### First create and store the terms ######
+    for i in range(1,k+1):
+        ###### Create Delta term ##########
+        # create new Theta subrule unless it already exists
+        rules, v, subValTheta = createThetaRule(rules, v, val)
+        # create new Delta subrule unless it already exists
+        if op.Rel == ">=" and i == k:
+            rules, v, subValDelta = createDeltaRule(rules, v, subValTheta, lambda x, y=i : 1 if x >= y else 0)
+        else:
             rules, v, subValDelta = createDeltaRule(rules, v, subValTheta, lambda x, y=i : 1 if x == y else 0)
-            yvals[i-1] = subValDelta
-            ###### Create recurrent term ######
-            if k - i == 1: 
+        yvals[i-1] = subValDelta
+        ###### Create recurrent term ######
+        if k - i == 1: 
+            if op.Rel == "=":
                 subVal = val
-            elif k - i == 0:
-                rules, v, subVal = createAtomRule(rules, v, 0)
-            else:
+            elif op.Rel == "<=":
+                subVal = chr(v); v += 1
+                rules, v, zero = createAtomRule(rules, v, 0)
+                rules[subVal] = Union(subVal, zero, val)
+            elif op.Rel == ">=":
                 subVal = chr(v); v += 1
                 rules, v = convert(KSet(subVal, val, op.Rel, k - i), rules, v, labeled)
-            xvals[i-1] = subVal
-        ###### Now sum the terms ######
+        elif k - i == 0:
+            if op.Rel == ">=":
+                subVal = chr(v); v += 1
+                rules, v = convert(Set(subVal, val), rules, v, labeled)
+            else:
+                rules, v, subVal = createAtomRule(rules, v, 0)
+        else:
+            subVal = chr(v); v += 1
+            rules, v = convert(KSet(subVal, val, op.Rel, k - i), rules, v, labeled)
+        xvals[i-1] = subVal
+    ###### Now sum the terms ######
+    if k == 1 and op.Rel == ">=":
+        rules[Theta(op.Value)] = Product(Theta(op.Value), xvals[0], yvals[0])
+    else:
         sumVal = chr(v); v += 1
         rules[sumVal] = Product(sumVal, xvals[0], yvals[0]) # first term
-        for i in range(1,k):
-            ###### Product of delta term and recurrent term ######
-            prodVal = chr(v); v += 1
-            rules[prodVal] = Product(prodVal, xvals[i], yvals[i])
-            if i < k-1: # iteratively sum
-                newVal = chr(v); v += 1
-                rules[newVal] = Union(newVal, sumVal, prodVal)
-                sumVal = newVal
-            else: # the complete rule
-                rules[Theta(op.Value)] = Union(Theta(op.Value), sumVal, prodVal)
+    for i in range(1,k):
+        ###### Product of delta term and recurrent term ######
+        prodVal = chr(v); v += 1
+        rules[prodVal] = Product(prodVal, xvals[i], yvals[i])
+        if i < k-1: # iteratively sum
+            newVal = chr(v); v += 1
+            rules[newVal] = Union(newVal, sumVal, prodVal)
+            sumVal = newVal
+        else: # the complete rule
+            rules[Theta(op.Value)] = Union(Theta(op.Value), sumVal, prodVal)
     rules[op.Value] = op
     if evalSub: rules, v = convert(op1, rules, v, labeled)
     return rules, v
