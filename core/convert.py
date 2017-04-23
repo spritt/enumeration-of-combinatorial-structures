@@ -1,6 +1,6 @@
 import copy, math
 from rules import *
-from util import *
+from tools.util import *
 
 def ConvertToStandardForm(eqs, labeled=True):
     v = 1

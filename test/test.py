@@ -1,7 +1,7 @@
-from rules import *
-from convert import *
-from valuate import *
-from generate import *
+from core.rules import *
+from core.convert import *
+from core.valuate import *
+from core.generate import *
 
 # enumerate an object from standard form
 def StandardForm(rules, n, sym, norm):

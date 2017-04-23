@@ -1,5 +1,4 @@
 from rules import *
-from util import *
 
 def EnumerateFromStandardForm(rules, n, v):
     t = {}
