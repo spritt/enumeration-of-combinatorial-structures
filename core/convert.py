@@ -327,40 +327,49 @@ def convertKCycleUnlabeled(op, rules, v, labeled):
     rules, v, op1, val, evalSub = convertSubRule(rules, v, op1)
     op.SubRule = val
     k = op.Card
-    if op.Rel == "=" or op.Rel == "<=":  
-        sumVal = val
-        # Theta(A) = C * Theta(B) <- add rule for Theta(B)
-        rules, v, thetaVal = createThetaRule(rules, v, val)
-        for j in range(1,k+1):
-            if op.Rel == "=" and k % j != 0:
-            #if k % j != 0:
-                continue
-            ###### create the term ######
-             # Theta(A) = C * Theta(B) <- add rule for C = Seq_k(B)
-            seqVal, v = assign(v)
-            if op.Rel == "=":
-                rules, v = convert(KSequence(seqVal, val, "=", k/j - 1), rules, v, labeled)
-            elif op.Rel == "<=":
-                rules, v = convert(KSequence(seqVal, val, "<=", int(math.floor(k/j - 1))), rules, v, labeled) #########
-                #rules, v = convert(KSequence(seqVal, val, "<=", k/j - 1), rules, v, labeled)
-            # Theta(A) = C * Theta(B)  
-            prodVal, v = assign(v)
-            rules[prodVal] = Product(prodVal, seqVal, thetaVal)
-            # special case for k = 1
-            if k == 1:
-                rules[Theta(op.Value)] = Delta(Theta(op.Value), prodVal, lambda x, y=j : tot(y) if x == y else 0)
-                continue
-            # otherwise, create Delta rule
-            rules, v, deltaVal = createDeltaRule(rules, v, prodVal, lambda x, y=j : tot(y) if x == y else 0)
-            ###### continue the sum ######
-            if j == k:
-                rules[Theta(op.Value)] = Union(Theta(op.Value), sumVal, deltaVal)
-            elif j == 1:
-                sumVal = deltaVal
+    sumVal = val
+    # Theta(A) = C * Theta(B) <- add rule for Theta(B)
+    rules, v, thetaVal = createThetaRule(rules, v, val)
+    for j in range(1,k+1):
+        if op.Rel == "=" and k % j != 0:
+        #if k % j != 0:
+            continue
+        ###### create the term ######
+         # Theta(A) = C * Theta(B) <- add rule for C = Seq_k(B)
+        seqVal, v = assign(v)
+        if op.Rel == "=":
+            rules, v = convert(KSequence(seqVal, val, "=", k/j - 1), rules, v, labeled)
+        elif op.Rel == "<=":
+            rules, v = convert(KSequence(seqVal, val, "<=", int(math.floor(k/j - 1))), rules, v, labeled)
+        elif op.Rel == ">=":
+            if j < k: 
+                rules, v = convert(KSequence(seqVal, val, ">=", int(math.floor(k/j - 1))), rules, v, labeled)
             else:
-                newVal, v = assign(v)
-                rules[newVal] = Union(newVal, sumVal, deltaVal)
-                sumVal = newVal
+                rules, v = convert(Sequence(seqVal, val), rules, v, labeled)
+        # Theta(A) = C * Theta(B)  
+        prodVal, v = assign(v)
+        rules[prodVal] = Product(prodVal, seqVal, thetaVal)
+        # special case for k = 1
+        if k == 1:
+            if op.Rel == ">=":
+                rules[Theta(op.Value)] = Delta(Theta(op.Value), prodVal, lambda x, y=j : tot(y) if x >= y else 0)
+            else:
+                rules[Theta(op.Value)] = Delta(Theta(op.Value), prodVal, lambda x, y=j : tot(y) if x == y else 0)
+            continue
+        # otherwise, create Delta rule
+        if op.Rel == ">=" and j == k:
+            rules, v, deltaVal = createDeltaRule(rules, v, prodVal, lambda x, y=j : tot(y) if x >= y else 0)
+        else:
+            rules, v, deltaVal = createDeltaRule(rules, v, prodVal, lambda x, y=j : tot(y) if x == y else 0)
+        ###### continue the sum ######
+        if j == k:
+            rules[Theta(op.Value)] = Union(Theta(op.Value), sumVal, deltaVal)
+        elif j == 1:
+            sumVal = deltaVal
+        else:
+            newVal, v = assign(v)
+            rules[newVal] = Union(newVal, sumVal, deltaVal)
+            sumVal = newVal
     rules[op.Value] = op
     if evalSub: rules, v = convert(op1, rules, v, labeled)
     return rules, v
