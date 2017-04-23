@@ -1,4 +1,5 @@
-DEFAULT_MAPLE_PATH ='/Library/Frameworks/Maple.framework/Versions/17/bin/maple'
+#DEFAULT_MAPLE_PATH ='/Library/Frameworks/Maple.framework/Versions/17/bin/maple'
+DEFAULT_MAPLE_PATH ='/Library/Frameworks/Maple.framework/Versions/2016/bin/maple'
 
 import sys
 import subprocess
@@ -52,7 +53,7 @@ class ShellSession(object):
     self.process = subprocess.Popen(cmd,
                                     stdout = subprocess.PIPE,
                                     stderr = subprocess.PIPE,
-                                    stdin  = subprocess.PIPE)
+                                    stdin  = subprocess.PIPE, shell=True) ### added shell=True
     
     self.stdout_queue = Queue.Queue()
     self.stdout_reader = AsynchronousFileReader(self.process.stdout,
